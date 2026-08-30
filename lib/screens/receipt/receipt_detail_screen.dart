@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:meus_recibos/core/theme/app_colors.dart';
 import 'package:meus_recibos/core/utils/currency_utils.dart';
@@ -5,11 +7,54 @@ import 'package:meus_recibos/core/utils/date_utils.dart';
 import 'package:meus_recibos/core/utils/document_utils.dart';
 import 'package:meus_recibos/core/utils/quantity_utils.dart';
 import 'package:meus_recibos/models/app_document.dart';
+import 'package:meus_recibos/screens/receipt/receipt_pdf_screen.dart';
+import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ReceiptDetailScreen extends StatelessWidget {
   const ReceiptDetailScreen({required this.receipt, super.key});
 
   final AppDocument receipt;
+
+  Future<void> _print(BuildContext context) async {
+    final path = receipt.pdfPath;
+    if (path == null || !await File(path).exists()) {
+      if (context.mounted) _missingPdf(context);
+      return;
+    }
+    await Printing.layoutPdf(onLayout: (_) => File(path).readAsBytes());
+  }
+
+  Future<void> _share(BuildContext context) async {
+    final path = receipt.pdfPath;
+    if (path == null || !await File(path).exists()) {
+      if (context.mounted) _missingPdf(context);
+      return;
+    }
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(path, mimeType: 'application/pdf')],
+        title: receipt.number ?? 'Recibo',
+        text: 'Recibo ${receipt.number ?? ''}',
+      ),
+    );
+  }
+
+  void _open(BuildContext context) {
+    final path = receipt.pdfPath;
+    if (path == null || !File(path).existsSync()) {
+      _missingPdf(context);
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ReceiptPdfScreen(receipt: receipt)),
+    );
+  }
+
+  void _missingPdf(BuildContext context) => ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(const SnackBar(content: Text('Arquivo PDF não encontrado.')));
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -115,10 +160,30 @@ class ReceiptDetailScreen extends StatelessWidget {
           Text(receipt.notes!),
         ],
         const SizedBox(height: 24),
-        const Text(
-          'Preview e PDF serão adicionados no Marco 4.',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.textMuted),
+        FilledButton.icon(
+          onPressed: () => _open(context),
+          icon: const Icon(Icons.picture_as_pdf_outlined),
+          label: const Text('Abrir PDF'),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _share(context),
+                icon: const Icon(Icons.share_outlined),
+                label: const Text('Compartilhar'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _print(context),
+                icon: const Icon(Icons.print_outlined),
+                label: const Text('Imprimir'),
+              ),
+            ),
+          ],
         ),
       ],
     ),

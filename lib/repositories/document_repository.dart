@@ -84,6 +84,17 @@ class DocumentRepository {
     return _findById(database, id);
   }
 
+  Future<AppDocument> updatePdfPath(int id, String pdfPath) async {
+    final database = await _appDatabase.database;
+    await database.update(
+      'documents',
+      {'pdf_path': pdfPath, 'updated_at': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    return (await _findById(database, id))!;
+  }
+
   Future<AppDocument?> _findById(DatabaseExecutor database, int id) async {
     final rows = await database.query(
       'documents',

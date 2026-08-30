@@ -6,7 +6,7 @@ class AppDatabase {
 
   static final AppDatabase instance = AppDatabase._();
   static const _databaseName = 'meus_recibos.db';
-  static const _databaseVersion = 3;
+  static const _databaseVersion = 4;
   Future<Database>? _databaseFuture;
 
   Future<Database> get database => _databaseFuture ??= _open();
@@ -28,6 +28,9 @@ class AppDatabase {
         }
         if (oldVersion < 3) {
           await _createDocumentsTables(db);
+        }
+        if (oldVersion < 4) {
+          await db.execute('ALTER TABLE documents ADD COLUMN pdf_path TEXT');
         }
       },
     );
@@ -106,6 +109,7 @@ class AppDatabase {
         total INTEGER NOT NULL,
         status TEXT NOT NULL,
         source_document_id INTEGER,
+        pdf_path TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         FOREIGN KEY (profile_id) REFERENCES profiles(id),

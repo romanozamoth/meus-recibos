@@ -9,6 +9,7 @@ import 'package:meus_recibos/screens/documents/document_controller.dart';
 import 'package:meus_recibos/screens/home/home_screen.dart';
 import 'package:meus_recibos/screens/profiles/profile_controller.dart';
 import 'package:meus_recibos/services/document_number_service.dart';
+import 'package:meus_recibos/services/pdf_service.dart';
 import 'package:provider/provider.dart';
 
 class MeusRecibosApp extends StatelessWidget {
@@ -26,6 +27,7 @@ class MeusRecibosApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => DocumentController(
             DocumentRepository(AppDatabase.instance, DocumentNumberService()),
+            PdfService(),
           )..loadRecentReceipts(),
         ),
         ChangeNotifierProvider(

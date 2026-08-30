@@ -56,6 +56,7 @@ class AppDocument {
     required this.total,
     required this.status,
     this.sourceDocumentId,
+    this.pdfPath,
     required this.createdAt,
     required this.updatedAt,
     this.items = const [],
@@ -82,6 +83,7 @@ class AppDocument {
   final int total;
   final String status;
   final int? sourceDocumentId;
+  final String? pdfPath;
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<DocumentItem> items;
@@ -108,6 +110,7 @@ class AppDocument {
     'total': total,
     'status': status,
     'source_document_id': sourceDocumentId,
+    'pdf_path': pdfPath,
     'created_at': createdAt.toIso8601String(),
     'updated_at': updatedAt.toIso8601String(),
   };
@@ -137,6 +140,7 @@ class AppDocument {
     total: map['total'] as int,
     status: map['status'] as String,
     sourceDocumentId: map['source_document_id'] as int?,
+    pdfPath: map['pdf_path'] as String?,
     createdAt: DateTime.parse(map['created_at'] as String),
     updatedAt: DateTime.parse(map['updated_at'] as String),
     items: items,

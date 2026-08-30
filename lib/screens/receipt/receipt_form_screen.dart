@@ -13,6 +13,7 @@ import 'package:meus_recibos/screens/clients/clients_screen.dart';
 import 'package:meus_recibos/screens/documents/document_controller.dart';
 import 'package:meus_recibos/screens/profiles/profile_controller.dart';
 import 'package:meus_recibos/screens/receipt/receipt_detail_screen.dart';
+import 'package:meus_recibos/screens/receipt/receipt_preview_screen.dart';
 import 'package:provider/provider.dart';
 
 class ReceiptFormScreen extends StatefulWidget {
@@ -111,6 +112,51 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
     setState(() => _items.removeAt(index).dispose());
   }
 
+  AppDocument _receiptDraft({int? clientId}) {
+    final now = DateTime.now();
+    return AppDocument(
+      type: DocumentType.receipt,
+      profileId: _profileId!,
+      clientId: clientId ?? _selectedClient?.id,
+      clientName: _clientName.text.trim(),
+      clientDocument: _optional(DocumentUtils.digitsOnly(_clientDocument.text)),
+      clientAddress: _optional(_clientAddress.text),
+      date: _date,
+      dueDate: _dueDate,
+      serviceDescription: _serviceDescription.text.trim(),
+      paymentMethod: _paymentMethod,
+      notes: _optional(_notes.text),
+      subtotal: _subtotal,
+      discount: _discountCents,
+      total: _total,
+      status: 'paid',
+      createdAt: now,
+      updatedAt: now,
+      items: _items.map((item) => item.toDocumentItem()).toList(),
+    );
+  }
+
+  Future<void> _preview() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_profileId == null || _discountCents > _subtotal) {
+      await _save();
+      return;
+    }
+    final profile = context.read<ProfileController>().profiles.firstWhere(
+      (profile) => profile.id == _profileId,
+    );
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReceiptPreviewScreen(
+          receipt: _receiptDraft(),
+          profile: profile,
+          onSave: _save,
+        ),
+      ),
+    );
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_profileId == null) {
@@ -171,8 +217,12 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
         items: _items.map((item) => item.toDocumentItem()).toList(),
       );
       if (!mounted) return;
-      final saved = await context.read<DocumentController>().saveReceipt(
+      final profile = context.read<ProfileController>().profiles.firstWhere(
+        (profile) => profile.id == _profileId,
+      );
+      final saved = await context.read<DocumentController>().saveReceiptWithPdf(
         receipt,
+        profile,
       );
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -431,10 +481,10 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
             ),
             const SizedBox(height: 28),
             AppButton(
-              label: 'Salvar Recibo',
-              icon: Icons.save_outlined,
+              label: 'Visualizar e Gerar',
+              icon: Icons.picture_as_pdf_outlined,
               loading: _saving,
-              onPressed: _save,
+              onPressed: _preview,
             ),
             const SizedBox(height: 20),
           ],
