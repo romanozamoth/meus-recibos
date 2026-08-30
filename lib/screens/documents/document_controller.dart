@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:meus_recibos/models/app_document.dart';
 import 'package:meus_recibos/repositories/document_repository.dart';
@@ -22,18 +24,16 @@ class DocumentController extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      _recentReceipts = await _repository.findRecent(
-        type: DocumentType.receipt,
-      );
+      _recentReceipts = await _repository.findRecent(limit: 100);
     } catch (_) {
-      _error = 'Não foi possível carregar os recibos.';
+      _error = 'Não foi possível carregar os documentos.';
     } finally {
       _loading = false;
       notifyListeners();
     }
   }
 
-  Future<AppDocument> saveReceiptWithPdf(
+  Future<AppDocument> saveDocumentWithPdf(
     AppDocument receipt,
     Profile profile,
   ) async {
@@ -41,7 +41,29 @@ class DocumentController extends ChangeNotifier {
     final bytes = await _pdfService.buildReceipt(saved, profile);
     final path = await _pdfService.saveReceipt(bytes, saved);
     saved = await _repository.updatePdfPath(saved.id!, path);
-    await loadRecentReceipts();
+    _recentReceipts = [
+      saved,
+      ..._recentReceipts.where((document) => document.id != saved.id),
+    ];
+    notifyListeners();
+    unawaited(loadRecentReceipts());
     return saved;
+  }
+
+  Future<AppDocument> updateBudgetStatus(
+    AppDocument budget,
+    String status,
+    Profile profile,
+  ) async {
+    var updated = await _repository.updateStatus(budget.id!, status);
+    final bytes = await _pdfService.buildReceipt(updated, profile);
+    final path = await _pdfService.saveReceipt(bytes, updated);
+    updated = await _repository.updatePdfPath(updated.id!, path);
+    _recentReceipts = _recentReceipts
+        .map((document) => document.id == updated.id ? updated : document)
+        .toList();
+    notifyListeners();
+    unawaited(loadRecentReceipts());
+    return updated;
   }
 }

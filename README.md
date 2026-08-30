@@ -17,3 +17,4 @@ Estado atual:
 - Marco 2: cadastro, edição, exclusão, pesquisa e seleção de clientes locais.
 - Marco 3: criação e persistência de recibos com itens e cálculos em inteiros.
 - Marco 4: preview A4, geração local de PDF personalizado, compartilhamento e impressão de recibos.
+- Marco 5: criação, histórico, PDF e alteração de status de orçamentos.

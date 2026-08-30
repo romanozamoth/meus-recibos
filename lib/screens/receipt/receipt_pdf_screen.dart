@@ -10,15 +10,18 @@ class ReceiptPdfScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(receipt.number ?? 'PDF do recibo')),
-    body: PdfPreview(
-      build: (_) => File(receipt.pdfPath!).readAsBytes(),
-      canChangeOrientation: false,
-      canChangePageFormat: false,
-      canDebug: false,
-      allowPrinting: false,
-      allowSharing: false,
-      pdfFileName: '${(receipt.number ?? 'recibo').replaceAll('/', '-')}.pdf',
+    appBar: AppBar(title: Text(receipt.number ?? 'PDF do documento')),
+    body: SafeArea(
+      top: false,
+      child: PdfPreview(
+        build: (_) => File(receipt.pdfPath!).readAsBytes(),
+        canChangeOrientation: false,
+        canChangePageFormat: false,
+        canDebug: false,
+        allowPrinting: false,
+        allowSharing: false,
+        pdfFileName: '${(receipt.number ?? 'recibo').replaceAll('/', '-')}.pdf',
+      ),
     ),
   );
 }

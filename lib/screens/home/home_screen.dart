@@ -5,6 +5,7 @@ import 'package:meus_recibos/core/utils/date_utils.dart';
 import 'package:meus_recibos/core/widgets/app_card.dart';
 import 'package:meus_recibos/models/app_document.dart';
 import 'package:meus_recibos/screens/documents/document_controller.dart';
+import 'package:meus_recibos/screens/documents/documents_screen.dart';
 import 'package:meus_recibos/screens/home/app_drawer.dart';
 import 'package:meus_recibos/screens/profiles/profile_controller.dart';
 import 'package:meus_recibos/screens/profiles/profile_form_screen.dart';
@@ -23,18 +24,18 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  void _newReceipt(BuildContext context, bool hasProfile) {
+  void _newDocument(BuildContext context, bool hasProfile, DocumentType type) {
     if (!hasProfile) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Cadastre um perfil antes de criar um recibo.'),
+          content: Text('Cadastre um perfil antes de criar um documento.'),
         ),
       );
       return;
     }
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const ReceiptFormScreen()),
+      MaterialPageRoute(builder: (_) => ReceiptFormScreen(type: type)),
     );
   }
 
@@ -109,7 +110,11 @@ class HomeScreen extends StatelessWidget {
                       subtitle: 'Pagamento recebido',
                       icon: Icons.receipt_long_outlined,
                       color: AppColors.receipt,
-                      onTap: () => _newReceipt(context, profile != null),
+                      onTap: () => _newDocument(
+                        context,
+                        profile != null,
+                        DocumentType.receipt,
+                      ),
                     ),
                     _DocumentCard(
                       width: width,
@@ -117,7 +122,11 @@ class HomeScreen extends StatelessWidget {
                       subtitle: 'Proposta de serviço',
                       icon: Icons.request_quote_outlined,
                       color: AppColors.budget,
-                      onTap: () => _comingSoon(context),
+                      onTap: () => _newDocument(
+                        context,
+                        profile != null,
+                        DocumentType.budget,
+                      ),
                     ),
                     _DocumentCard(
                       width: width,
@@ -132,10 +141,25 @@ class HomeScreen extends StatelessWidget {
               },
             ),
             const SizedBox(height: 28),
-            Text(
-              'Documentos recentes',
-              style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w700),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Documentos recentes',
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                if (documents.recentReceipts.isNotEmpty)
+                  TextButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const DocumentsScreen(),
+                      ),
+                    ),
+                    child: const Text('Ver todos'),
+                  ),
+              ],
             ),
             const SizedBox(height: 14),
             if (documents.loading)
@@ -200,11 +224,17 @@ class _RecentReceiptCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            const CircleAvatar(
-              backgroundColor: Color(0xFFE3F2FD),
+            CircleAvatar(
+              backgroundColor: receipt.type == DocumentType.budget
+                  ? const Color(0xFFF3E5F5)
+                  : const Color(0xFFE3F2FD),
               child: Icon(
-                Icons.receipt_long_outlined,
-                color: AppColors.receipt,
+                receipt.type == DocumentType.budget
+                    ? Icons.request_quote_outlined
+                    : Icons.receipt_long_outlined,
+                color: receipt.type == DocumentType.budget
+                    ? AppColors.budget
+                    : AppColors.receipt,
               ),
             ),
             const SizedBox(width: 12),
@@ -224,6 +254,17 @@ class _RecentReceiptCard extends StatelessWidget {
                       fontSize: 12,
                     ),
                   ),
+                  if (receipt.type == DocumentType.budget)
+                    Text(
+                      _statusLabel(receipt.status),
+                      style: TextStyle(
+                        color: receipt.status == 'paid'
+                            ? AppColors.proof
+                            : AppColors.textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -246,6 +287,14 @@ class _RecentReceiptCard extends StatelessWidget {
       ),
     ),
   );
+
+  String _statusLabel(String status) => switch (status) {
+    'pending' => 'Pendente',
+    'approved' => 'Aprovado',
+    'paid' => 'Pago',
+    'rejected' => 'Recusado',
+    _ => status,
+  };
 }
 
 class _DashboardBanner extends StatelessWidget {

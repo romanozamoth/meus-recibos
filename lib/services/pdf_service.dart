@@ -71,14 +71,14 @@ class PdfService {
                 crossAxisAlignment: pw.CrossAxisAlignment.end,
                 children: [
                   pw.Text(
-                    'RECIBO',
+                    receipt.type.label.toUpperCase(),
                     style: pw.TextStyle(
                       fontSize: 20,
                       fontWeight: pw.FontWeight.bold,
                       color: accent,
                     ),
                   ),
-                  pw.Text(receipt.number ?? 'REC-PRÉVIA'),
+                  pw.Text(receipt.number ?? '${receipt.type.prefix}-PRÉVIA'),
                   pw.Text(AppDateUtils.format(receipt.date)),
                 ],
               ),
@@ -151,6 +151,10 @@ class PdfService {
           _info('Forma', receipt.paymentMethod),
           if (receipt.dueDate != null)
             _info('Vencimento', AppDateUtils.format(receipt.dueDate!)),
+          if (receipt.validUntil != null)
+            _info('Validade', AppDateUtils.format(receipt.validUntil!)),
+          if (receipt.type == DocumentType.budget)
+            _info('Status', _statusLabel(receipt.status)),
           if (receipt.notes != null) ...[
             _sectionTitle('OBSERVAÇÕES', accent),
             pw.Text(receipt.notes!),
@@ -189,7 +193,8 @@ class PdfService {
     final root = await getApplicationDocumentsDirectory();
     final directory = Directory(p.join(root.path, 'pdfs'));
     await directory.create(recursive: true);
-    final safeNumber = (receipt.number ?? 'recibo').replaceAll('/', '-');
+    final safeNumber = (receipt.number ?? receipt.type.label.toLowerCase())
+        .replaceAll('/', '-');
     final file = File(p.join(directory.path, '$safeNumber.pdf'));
     await file.writeAsBytes(bytes, flush: true);
     return file.path;
@@ -206,6 +211,14 @@ class PdfService {
       ),
     ),
   );
+
+  String _statusLabel(String status) => switch (status) {
+    'pending' => 'Pendente',
+    'approved' => 'Aprovado',
+    'paid' => 'Pago',
+    'rejected' => 'Recusado',
+    _ => status,
+  };
 
   pw.Widget _info(String label, String value) => pw.Padding(
     padding: const pw.EdgeInsets.symmetric(vertical: 2),

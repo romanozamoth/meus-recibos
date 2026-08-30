@@ -40,6 +40,8 @@ class MeusRecibosApp extends StatelessWidget {
         title: 'Meus Recibos',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
+        builder: (context, child) =>
+            SafeArea(top: false, child: child ?? const SizedBox.shrink()),
         home: const HomeScreen(),
       ),
     );

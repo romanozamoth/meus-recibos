@@ -47,7 +47,9 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Prévia do recibo')),
+    appBar: AppBar(
+      title: Text('Prévia do ${widget.receipt.type.label.toLowerCase()}'),
+    ),
     body: Column(
       children: [
         Expanded(
@@ -58,7 +60,7 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
             canDebug: false,
             allowPrinting: false,
             allowSharing: false,
-            pdfFileName: 'recibo-previa.pdf',
+            pdfFileName: '${widget.receipt.type.databaseValue}-previa.pdf',
           ),
         ),
         SafeArea(

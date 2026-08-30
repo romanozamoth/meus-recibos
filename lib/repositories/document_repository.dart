@@ -95,6 +95,21 @@ class DocumentRepository {
     return (await _findById(database, id))!;
   }
 
+  Future<AppDocument> updateStatus(int id, String status) async {
+    const allowed = {'pending', 'approved', 'paid', 'rejected'};
+    if (!allowed.contains(status)) {
+      throw ArgumentError.value(status, 'status', 'Status inválido');
+    }
+    final database = await _appDatabase.database;
+    await database.update(
+      'documents',
+      {'status': status, 'updated_at': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    return (await _findById(database, id))!;
+  }
+
   Future<AppDocument?> _findById(DatabaseExecutor database, int id) async {
     final rows = await database.query(
       'documents',
