@@ -6,10 +6,10 @@ class AppDatabase {
 
   static final AppDatabase instance = AppDatabase._();
   static const _databaseName = 'meus_recibos.db';
-  static const _databaseVersion = 2;
-  Database? _database;
+  static const _databaseVersion = 3;
+  Future<Database>? _databaseFuture;
 
-  Future<Database> get database async => _database ??= await _open();
+  Future<Database> get database => _databaseFuture ??= _open();
 
   Future<Database> _open() async {
     final databasePath = await getDatabasesPath();
@@ -20,10 +20,14 @@ class AppDatabase {
       onCreate: (db, version) async {
         await _createProfilesTable(db);
         await _createClientsTable(db);
+        await _createDocumentsTables(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           await _createClientsTable(db);
+        }
+        if (oldVersion < 3) {
+          await _createDocumentsTables(db);
         }
       },
     );
@@ -75,6 +79,56 @@ class AppDatabase {
     );
     await db.execute(
       'CREATE INDEX idx_clients_name ON clients(name COLLATE NOCASE)',
+    );
+  }
+
+  static Future<void> _createDocumentsTables(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        number TEXT NOT NULL UNIQUE,
+        sequence INTEGER NOT NULL,
+        year INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        profile_id INTEGER NOT NULL,
+        client_id INTEGER,
+        client_name TEXT NOT NULL,
+        client_document TEXT,
+        client_address TEXT,
+        date TEXT NOT NULL,
+        due_date TEXT,
+        valid_until TEXT,
+        service_description TEXT NOT NULL,
+        payment_method TEXT NOT NULL,
+        notes TEXT,
+        subtotal INTEGER NOT NULL,
+        discount INTEGER NOT NULL DEFAULT 0,
+        total INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        source_document_id INTEGER,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (profile_id) REFERENCES profiles(id),
+        FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL,
+        FOREIGN KEY (source_document_id) REFERENCES documents(id),
+        UNIQUE(type, year, sequence)
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE document_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        document_id INTEGER NOT NULL,
+        description TEXT NOT NULL,
+        quantity_millis INTEGER NOT NULL,
+        unit TEXT NOT NULL,
+        unit_price INTEGER NOT NULL,
+        total INTEGER NOT NULL,
+        FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute('CREATE INDEX idx_documents_date ON documents(date DESC)');
+    await db.execute(
+      'CREATE INDEX idx_document_items_document ON document_items(document_id)',
     );
   }
 }

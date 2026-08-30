@@ -25,9 +25,10 @@ class _ClientsScreenState extends State<ClientsScreen> {
   void initState() {
     super.initState();
     final controller = context.read<ClientController>();
-    _search = TextEditingController(text: controller.query);
+    final initialQuery = widget.selectionMode ? '' : controller.query;
+    _search = TextEditingController(text: initialQuery);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.loadClients(query: controller.query);
+      controller.loadClients(query: initialQuery);
     });
   }
 

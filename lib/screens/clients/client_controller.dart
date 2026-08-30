@@ -36,6 +36,12 @@ class ClientController extends ChangeNotifier {
     await loadClients();
   }
 
+  Future<Client> saveFromDocument(Client client) async {
+    final saved = await _repository.saveFromDocument(client);
+    await loadClients();
+    return saved;
+  }
+
   Future<void> delete(int id) async {
     await _repository.delete(id);
     await loadClients();

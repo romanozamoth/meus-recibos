@@ -55,6 +55,28 @@ class ClientRepository {
     }
   }
 
+  Future<Client> saveFromDocument(Client client) async {
+    final document = DocumentUtils.digitsOnly(client.document ?? '');
+    if (document.isNotEmpty) {
+      final existing = await findByDocument(document);
+      if (existing != null) return existing;
+    }
+    return save(client);
+  }
+
+  Future<Client?> findByDocument(String value) async {
+    final document = DocumentUtils.digitsOnly(value);
+    if (document.isEmpty) return null;
+    final db = await _appDatabase.database;
+    final rows = await db.query(
+      'clients',
+      where: 'document = ?',
+      whereArgs: [document],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : Client.fromMap(rows.single);
+  }
+
   Future<void> delete(int id) async {
     final db = await _appDatabase.database;
     await db.delete('clients', where: 'id = ?', whereArgs: [id]);

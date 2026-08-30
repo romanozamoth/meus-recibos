@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:meus_recibos/core/theme/app_colors.dart';
+import 'package:meus_recibos/core/utils/currency_utils.dart';
+import 'package:meus_recibos/core/utils/date_utils.dart';
 import 'package:meus_recibos/core/widgets/app_card.dart';
+import 'package:meus_recibos/models/app_document.dart';
+import 'package:meus_recibos/screens/documents/document_controller.dart';
 import 'package:meus_recibos/screens/home/app_drawer.dart';
 import 'package:meus_recibos/screens/profiles/profile_controller.dart';
 import 'package:meus_recibos/screens/profiles/profile_form_screen.dart';
+import 'package:meus_recibos/screens/receipt/receipt_detail_screen.dart';
+import 'package:meus_recibos/screens/receipt/receipt_form_screen.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -17,9 +23,25 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  void _newReceipt(BuildContext context, bool hasProfile) {
+    if (!hasProfile) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cadastre um perfil antes de criar um recibo.'),
+        ),
+      );
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ReceiptFormScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final profiles = context.watch<ProfileController>();
+    final documents = context.watch<DocumentController>();
     final profile = profiles.defaultProfile;
     return Scaffold(
       appBar: AppBar(title: const Text('Meus Recibos')),
@@ -87,7 +109,7 @@ class HomeScreen extends StatelessWidget {
                       subtitle: 'Pagamento recebido',
                       icon: Icons.receipt_long_outlined,
                       color: AppColors.receipt,
-                      onTap: () => _comingSoon(context),
+                      onTap: () => _newReceipt(context, profile != null),
                     ),
                     _DocumentCard(
                       width: width,
@@ -116,35 +138,114 @@ class HomeScreen extends StatelessWidget {
                   ?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 14),
-            const AppCard(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 22),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.description_outlined,
-                      size: 42,
-                      color: AppColors.textMuted,
-                    ),
-                    SizedBox(height: 10),
-                    Text(
-                      'Nenhum documento criado',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Seus documentos aparecerão aqui.',
-                      style: TextStyle(color: AppColors.textMuted),
-                    ),
-                  ],
+            if (documents.loading)
+              const Center(child: CircularProgressIndicator())
+            else if (documents.recentReceipts.isEmpty)
+              const AppCard(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 22),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.description_outlined,
+                        size: 42,
+                        color: AppColors.textMuted,
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        'Nenhum documento criado',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Seus documentos aparecerão aqui.',
+                        style: TextStyle(color: AppColors.textMuted),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
+              )
+            else
+              ...documents.recentReceipts
+                  .take(5)
+                  .map(
+                    (receipt) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _RecentReceiptCard(receipt: receipt),
+                    ),
+                  ),
           ],
         ),
       ),
     );
   }
+}
+
+class _RecentReceiptCard extends StatelessWidget {
+  const _RecentReceiptCard({required this.receipt});
+
+  final AppDocument receipt;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ReceiptDetailScreen(receipt: receipt),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            const CircleAvatar(
+              backgroundColor: Color(0xFFE3F2FD),
+              child: Icon(
+                Icons.receipt_long_outlined,
+                color: AppColors.receipt,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    receipt.clientName,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${receipt.number} • ${AppDateUtils.format(receipt.date)}',
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  CurrencyUtils.format(receipt.total),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Abrir →',
+                  style: TextStyle(color: AppColors.primary, fontSize: 12),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _DashboardBanner extends StatelessWidget {
