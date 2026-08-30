@@ -6,7 +6,7 @@ class AppDatabase {
 
   static final AppDatabase instance = AppDatabase._();
   static const _databaseName = 'meus_recibos.db';
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
   Database? _database;
 
   Future<Database> get database async => _database ??= await _open();
@@ -18,7 +18,19 @@ class AppDatabase {
       version: _databaseVersion,
       onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: (db, version) async {
-        await db.execute('''
+        await _createProfilesTable(db);
+        await _createClientsTable(db);
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await _createClientsTable(db);
+        }
+      },
+    );
+  }
+
+  static Future<void> _createProfilesTable(DatabaseExecutor db) async {
+    await db.execute('''
           CREATE TABLE profiles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -40,11 +52,29 @@ class AppDatabase {
             updated_at TEXT NOT NULL
           )
         ''');
-        await db.execute(
-          'CREATE UNIQUE INDEX idx_profiles_single_default '
-          'ON profiles(is_default) WHERE is_default = 1',
-        );
-      },
+    await db.execute(
+      'CREATE UNIQUE INDEX idx_profiles_single_default '
+      'ON profiles(is_default) WHERE is_default = 1',
+    );
+  }
+
+  static Future<void> _createClientsTable(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE clients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        document TEXT,
+        address TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute(
+      'CREATE UNIQUE INDEX idx_clients_unique_document '
+      "ON clients(document) WHERE document IS NOT NULL AND document <> ''",
+    );
+    await db.execute(
+      'CREATE INDEX idx_clients_name ON clients(name COLLATE NOCASE)',
     );
   }
 }

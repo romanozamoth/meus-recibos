@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:meus_recibos/core/theme/app_colors.dart';
+import 'package:meus_recibos/screens/clients/clients_screen.dart';
 import 'package:meus_recibos/screens/profiles/profiles_screen.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -74,7 +75,13 @@ class AppDrawer extends StatelessWidget {
             _DrawerItem(
               icon: Icons.people_outline,
               label: 'Clientes',
-              onTap: () => _comingSoon(context),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ClientsScreen()),
+                );
+              },
             ),
             _DrawerItem(
               icon: Icons.cloud_download_outlined,
