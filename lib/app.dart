@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:meus_recibos/core/database/app_database.dart';
 import 'package:meus_recibos/core/theme/app_theme.dart';
 import 'package:meus_recibos/repositories/client_repository.dart';
+import 'package:meus_recibos/repositories/dashboard_repository.dart';
 import 'package:meus_recibos/repositories/document_repository.dart';
 import 'package:meus_recibos/repositories/profile_repository.dart';
 import 'package:meus_recibos/screens/clients/client_controller.dart';
+import 'package:meus_recibos/screens/dashboard/dashboard_controller.dart';
 import 'package:meus_recibos/screens/documents/document_controller.dart';
 import 'package:meus_recibos/screens/home/home_screen.dart';
 import 'package:meus_recibos/screens/profiles/profile_controller.dart';
@@ -23,6 +25,10 @@ class MeusRecibosApp extends StatelessWidget {
           create: (_) =>
               ProfileController(ProfileRepository(AppDatabase.instance))
                 ..loadProfiles(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) =>
+              DashboardController(DashboardRepository(AppDatabase.instance)),
         ),
         ChangeNotifierProvider(
           create: (_) => DocumentController(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:meus_recibos/core/theme/app_colors.dart';
 import 'package:meus_recibos/screens/clients/clients_screen.dart';
+import 'package:meus_recibos/screens/dashboard/dashboard_screen.dart';
 import 'package:meus_recibos/screens/profiles/profiles_screen.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -59,7 +60,13 @@ class AppDrawer extends StatelessWidget {
             _DrawerItem(
               icon: Icons.dashboard_outlined,
               label: 'Painel',
-              onTap: () => _comingSoon(context),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                );
+              },
             ),
             _DrawerItem(
               icon: Icons.badge_outlined,

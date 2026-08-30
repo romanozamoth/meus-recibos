@@ -19,3 +19,4 @@ Estado atual:
 - Marco 4: preview A4, geração local de PDF personalizado, compartilhamento e impressão de recibos.
 - Marco 5: criação, histórico, PDF e alteração de status de orçamentos.
 - Marco 6: criação direta de comprovantes e conversão de orçamentos pagos com vínculo de origem.
+- Marco 7: painel local com resumo mensal, documentos por tipo e ranking anual de clientes.

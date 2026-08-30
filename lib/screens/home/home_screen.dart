@@ -6,6 +6,7 @@ import 'package:meus_recibos/core/widgets/app_card.dart';
 import 'package:meus_recibos/models/app_document.dart';
 import 'package:meus_recibos/screens/documents/document_controller.dart';
 import 'package:meus_recibos/screens/documents/documents_screen.dart';
+import 'package:meus_recibos/screens/dashboard/dashboard_screen.dart';
 import 'package:meus_recibos/screens/home/app_drawer.dart';
 import 'package:meus_recibos/screens/profiles/profile_controller.dart';
 import 'package:meus_recibos/screens/profiles/profile_form_screen.dart';
@@ -15,14 +16,6 @@ import 'package:provider/provider.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
-  void _comingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('A criação de documentos começa nos próximos marcos.'),
-      ),
-    );
-  }
 
   void _newDocument(BuildContext context, bool hasProfile, DocumentType type) {
     if (!hasProfile) {
@@ -89,7 +82,12 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
             ],
-            _DashboardBanner(onTap: () => _comingSoon(context)),
+            _DashboardBanner(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DashboardScreen()),
+              ),
+            ),
             const SizedBox(height: 26),
             Text(
               'Criar documento',
@@ -336,7 +334,7 @@ class _DashboardBanner extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Acompanhe seus resultados em breve',
+                    'Acompanhe seus resultados locais',
                     style: TextStyle(color: Colors.white70),
                   ),
                 ],
