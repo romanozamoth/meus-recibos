@@ -20,3 +20,4 @@ Estado atual:
 - Marco 5: criação, histórico, PDF e alteração de status de orçamentos.
 - Marco 6: criação direta de comprovantes e conversão de orçamentos pagos com vínculo de origem.
 - Marco 7: painel local com resumo mensal, documentos por tipo e ranking anual de clientes.
+- Marco 8: exportação e restauração de backup local com banco, logos e PDFs.

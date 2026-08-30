@@ -1,22 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:meus_recibos/core/theme/app_colors.dart';
+import 'package:meus_recibos/screens/backup/backup_screen.dart';
 import 'package:meus_recibos/screens/clients/clients_screen.dart';
 import 'package:meus_recibos/screens/dashboard/dashboard_screen.dart';
 import 'package:meus_recibos/screens/profiles/profiles_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
-
-  void _comingSoon(BuildContext context) {
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Esta funcionalidade será adicionada em um próximo marco.',
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +83,13 @@ class AppDrawer extends StatelessWidget {
             _DrawerItem(
               icon: Icons.cloud_download_outlined,
               label: 'Backup e restauração',
-              onTap: () => _comingSoon(context),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const BackupScreen()),
+                );
+              },
             ),
             const Spacer(),
             const Padding(
