@@ -9,6 +9,7 @@ import 'package:meus_recibos/core/utils/quantity_utils.dart';
 import 'package:meus_recibos/models/app_document.dart';
 import 'package:meus_recibos/screens/documents/document_controller.dart';
 import 'package:meus_recibos/screens/profiles/profile_controller.dart';
+import 'package:meus_recibos/screens/receipt/receipt_form_screen.dart';
 import 'package:meus_recibos/screens/receipt/receipt_pdf_screen.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
@@ -68,6 +69,40 @@ class ReceiptDetailScreen extends StatelessWidget {
           .read<DocumentController>()
           .updateBudgetStatus(receipt, status, profile);
       if (!context.mounted) return;
+      if (status == 'paid') {
+        final generate = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Gerar comprovante?'),
+            content: const Text(
+              'O orçamento foi marcado como pago. Deseja emitir um comprovante de pagamento com os mesmos dados?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Agora não'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Gerar comprovante'),
+              ),
+            ],
+          ),
+        );
+        if (!context.mounted) return;
+        if (generate == true) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ReceiptFormScreen(
+                type: DocumentType.proof,
+                initialDocument: updated,
+              ),
+            ),
+          );
+          return;
+        }
+      }
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -93,9 +128,11 @@ class ReceiptDetailScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: receipt.type == DocumentType.budget
-                  ? AppColors.budget
-                  : AppColors.receipt,
+              color: switch (receipt.type) {
+                DocumentType.receipt => AppColors.receipt,
+                DocumentType.budget => AppColors.budget,
+                DocumentType.proof => AppColors.proof,
+              },
               borderRadius: BorderRadius.circular(18),
             ),
             child: Column(
@@ -153,6 +190,9 @@ class ReceiptDetailScreen extends StatelessWidget {
               },
             ),
           ],
+          if (receipt.type == DocumentType.proof &&
+              receipt.sourceDocumentId != null)
+            _SourceDocumentInfo(sourceId: receipt.sourceDocumentId!),
           const _Title('Cliente'),
           _Info(label: 'Nome', value: receipt.clientName),
           if (receipt.clientDocument != null)
@@ -271,6 +311,34 @@ class _Title extends StatelessWidget {
         fontWeight: FontWeight.w700,
       ),
     ),
+  );
+}
+
+class _SourceDocumentInfo extends StatelessWidget {
+  const _SourceDocumentInfo({required this.sourceId});
+  final int sourceId;
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<AppDocument?>(
+    future: context.read<DocumentController>().findById(sourceId),
+    builder: (context, snapshot) {
+      final source = snapshot.data;
+      if (source == null) return const SizedBox.shrink();
+      return Card(
+        color: const Color(0xFFE8F5E9),
+        child: ListTile(
+          leading: const Icon(Icons.link, color: AppColors.proof),
+          title: const Text('Origem do comprovante'),
+          subtitle: Text(source.number ?? 'Orçamento original'),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ReceiptDetailScreen(receipt: source),
+            ),
+          ),
+        ),
+      );
+    },
   );
 }
 

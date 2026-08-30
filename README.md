@@ -18,3 +18,4 @@ Estado atual:
 - Marco 3: criação e persistência de recibos com itens e cálculos em inteiros.
 - Marco 4: preview A4, geração local de PDF personalizado, compartilhamento e impressão de recibos.
 - Marco 5: criação, histórico, PDF e alteração de status de orçamentos.
+- Marco 6: criação direta de comprovantes e conversão de orçamentos pagos com vínculo de origem.

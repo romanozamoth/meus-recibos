@@ -69,4 +69,29 @@ void main() {
     expect(restored.total, 9500);
     expect(restored.items.single.quantityMillis, 1000);
   });
+
+  test('Comprovante preserva o vínculo com o orçamento original', () {
+    final now = DateTime.utc(2026, 8, 30);
+    final proof = AppDocument(
+      number: 'COMP-001/2026',
+      type: DocumentType.proof,
+      profileId: 1,
+      clientName: 'Cliente',
+      date: now,
+      serviceDescription: 'Serviço',
+      paymentMethod: 'PIX',
+      subtotal: 5000,
+      discount: 0,
+      total: 5000,
+      status: 'paid',
+      sourceDocumentId: 42,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final restored = AppDocument.fromMap(proof.toMap());
+
+    expect(restored.type, DocumentType.proof);
+    expect(restored.sourceDocumentId, 42);
+  });
 }

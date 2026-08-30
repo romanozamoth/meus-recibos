@@ -32,11 +32,11 @@ class DocumentsScreen extends StatelessWidget {
                         horizontal: 16,
                         vertical: 8,
                       ),
-                      leading: Icon(
-                        document.type == DocumentType.budget
-                            ? Icons.request_quote_outlined
-                            : Icons.receipt_long_outlined,
-                      ),
+                      leading: Icon(switch (document.type) {
+                        DocumentType.receipt => Icons.receipt_long_outlined,
+                        DocumentType.budget => Icons.request_quote_outlined,
+                        DocumentType.proof => Icons.verified_outlined,
+                      }),
                       title: Text(document.clientName),
                       subtitle: Text(
                         '${document.number} • ${AppDateUtils.format(document.date)}\n'

@@ -134,7 +134,11 @@ class HomeScreen extends StatelessWidget {
                       subtitle: 'Serviço prestado',
                       icon: Icons.verified_outlined,
                       color: AppColors.proof,
-                      onTap: () => _comingSoon(context),
+                      onTap: () => _newDocument(
+                        context,
+                        profile != null,
+                        DocumentType.proof,
+                      ),
                     ),
                   ],
                 );
@@ -225,16 +229,22 @@ class _RecentReceiptCard extends StatelessWidget {
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: receipt.type == DocumentType.budget
-                  ? const Color(0xFFF3E5F5)
-                  : const Color(0xFFE3F2FD),
+              backgroundColor: switch (receipt.type) {
+                DocumentType.receipt => const Color(0xFFE3F2FD),
+                DocumentType.budget => const Color(0xFFF3E5F5),
+                DocumentType.proof => const Color(0xFFE8F5E9),
+              },
               child: Icon(
-                receipt.type == DocumentType.budget
-                    ? Icons.request_quote_outlined
-                    : Icons.receipt_long_outlined,
-                color: receipt.type == DocumentType.budget
-                    ? AppColors.budget
-                    : AppColors.receipt,
+                switch (receipt.type) {
+                  DocumentType.receipt => Icons.receipt_long_outlined,
+                  DocumentType.budget => Icons.request_quote_outlined,
+                  DocumentType.proof => Icons.verified_outlined,
+                },
+                color: switch (receipt.type) {
+                  DocumentType.receipt => AppColors.receipt,
+                  DocumentType.budget => AppColors.budget,
+                  DocumentType.proof => AppColors.proof,
+                },
               ),
             ),
             const SizedBox(width: 12),

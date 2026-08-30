@@ -66,4 +66,6 @@ class DocumentController extends ChangeNotifier {
     unawaited(loadRecentReceipts());
     return updated;
   }
+
+  Future<AppDocument?> findById(int id) => _repository.findById(id);
 }

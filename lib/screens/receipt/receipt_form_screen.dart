@@ -17,9 +17,14 @@ import 'package:meus_recibos/screens/receipt/receipt_preview_screen.dart';
 import 'package:provider/provider.dart';
 
 class ReceiptFormScreen extends StatefulWidget {
-  const ReceiptFormScreen({this.type = DocumentType.receipt, super.key});
+  const ReceiptFormScreen({
+    this.type = DocumentType.receipt,
+    this.initialDocument,
+    super.key,
+  });
 
   final DocumentType type;
+  final AppDocument? initialDocument;
 
   @override
   State<ReceiptFormScreen> createState() => _ReceiptFormScreenState();
@@ -33,10 +38,11 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
   final _serviceDescription = TextEditingController();
   final _discount = TextEditingController();
   final _notes = TextEditingController();
-  final List<_ItemDraft> _items = [_ItemDraft()];
+  final List<_ItemDraft> _items = [];
   DateTime _date = DateTime.now();
   DateTime? _dueDate;
   int? _profileId;
+  int? _initialClientId;
   Client? _selectedClient;
   String _paymentMethod = 'PIX';
   bool _saveClient = false;
@@ -47,6 +53,28 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
   int get _subtotal => _items.fold(0, (sum, item) => sum + item.total);
   int get _discountCents => CurrencyUtils.tryParseCents(_discount.text) ?? 0;
   int get _total => (_subtotal - _discountCents).clamp(0, _subtotal);
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialDocument;
+    if (initial == null) {
+      _items.add(_ItemDraft());
+      return;
+    }
+    _profileId = initial.profileId;
+    _initialClientId = initial.clientId;
+    _clientName.text = initial.clientName;
+    _clientDocument.text = initial.clientDocument ?? '';
+    _clientAddress.text = initial.clientAddress ?? '';
+    _serviceDescription.text = initial.serviceDescription;
+    _discount.text = CurrencyUtils.format(initial.discount)
+        .replaceFirst('R\$ ', '');
+    _notes.text = initial.notes ?? '';
+    _paymentMethod = initial.paymentMethod;
+    _items.addAll(initial.items.map(_ItemDraft.fromItem));
+    if (_items.isEmpty) _items.add(_ItemDraft());
+  }
 
   @override
   void didChangeDependencies() {
@@ -86,6 +114,7 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
     if (client == null || !mounted) return;
     setState(() {
       _selectedClient = client;
+      _initialClientId = null;
       _clientName.text = client.name;
       _clientDocument.text = client.document ?? '';
       _clientAddress.text = client.address ?? '';
@@ -96,6 +125,7 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
   void _clearSelectedClient() {
     setState(() {
       _selectedClient = null;
+      _initialClientId = null;
       _clientName.clear();
       _clientDocument.clear();
       _clientAddress.clear();
@@ -121,7 +151,7 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
     return AppDocument(
       type: widget.type,
       profileId: _profileId!,
-      clientId: clientId ?? _selectedClient?.id,
+      clientId: clientId ?? _selectedClient?.id ?? _initialClientId,
       clientName: _clientName.text.trim(),
       clientDocument: _optional(DocumentUtils.digitsOnly(_clientDocument.text)),
       clientAddress: _optional(_clientAddress.text),
@@ -135,6 +165,9 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
       discount: _discountCents,
       total: _total,
       status: _isBudget ? 'pending' : 'paid',
+      sourceDocumentId: widget.type == DocumentType.proof
+          ? widget.initialDocument?.id
+          : null,
       createdAt: now,
       updatedAt: now,
       items: _items.map((item) => item.toDocumentItem()).toList(),
@@ -182,7 +215,7 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
     }
     setState(() => _saving = true);
     try {
-      var clientId = _selectedClient?.id;
+      var clientId = _selectedClient?.id ?? _initialClientId;
       if (_saveClient && _selectedClient == null) {
         final now = DateTime.now();
         final savedClient = await context
@@ -218,6 +251,9 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
         discount: _discountCents,
         total: _total,
         status: _isBudget ? 'pending' : 'paid',
+        sourceDocumentId: widget.type == DocumentType.proof
+            ? widget.initialDocument?.id
+            : null,
         createdAt: now,
         updatedAt: now,
         items: _items.map((item) => item.toDocumentItem()).toList(),
@@ -362,7 +398,7 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
                   ),
                 ),
               ),
-              if (_selectedClient == null)
+              if (_selectedClient == null && _initialClientId == null)
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
                   value: _saveClient,
@@ -515,12 +551,23 @@ class _ItemDraft {
   _ItemDraft()
     : description = TextEditingController(),
       quantity = TextEditingController(text: '1'),
-      unitPrice = TextEditingController();
+      unitPrice = TextEditingController(),
+      unit = 'un';
+
+  _ItemDraft.fromItem(DocumentItem item)
+    : description = TextEditingController(text: item.description),
+      quantity = TextEditingController(
+        text: QuantityUtils.formatMillis(item.quantityMillis),
+      ),
+      unitPrice = TextEditingController(
+        text: CurrencyUtils.format(item.unitPrice).replaceFirst('R\$ ', ''),
+      ),
+      unit = item.unit;
 
   final TextEditingController description;
   final TextEditingController quantity;
   final TextEditingController unitPrice;
-  String unit = 'un';
+  String unit;
 
   int get quantityMillis => QuantityUtils.tryParseMillis(quantity.text) ?? 0;
   int get unitPriceCents => CurrencyUtils.tryParseCents(unitPrice.text) ?? 0;
