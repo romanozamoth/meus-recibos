@@ -22,6 +22,7 @@ Estado atual:
 - Marco 7: painel local com resumo mensal, documentos por tipo e ranking anual de clientes.
 - Marco 8: exportação e restauração de backup local com banco, logos e PDFs.
 - Marco 9: estabilização dos PDFs com fonte Unicode offline e preparação para release.
+- Marco 10: testes de regressão para edição/exclusão no SQLite e validação de layout em tela pequena com fonte ampliada.
 
 ## Privacidade e funcionamento offline
 
@@ -38,3 +39,7 @@ flutter analyze
 flutter test
 flutter build apk --release
 ```
+
+Os testes automatizados incluem persistência e recálculo na edição, exclusão em
+cascata dos itens, preservação de comprovantes vinculados e detecção de overflow
+em tela de 320 px com escala de fonte de 150%.
