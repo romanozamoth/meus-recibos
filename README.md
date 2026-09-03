@@ -21,3 +21,20 @@ Estado atual:
 - Marco 6: criação direta de comprovantes e conversão de orçamentos pagos com vínculo de origem.
 - Marco 7: painel local com resumo mensal, documentos por tipo e ranking anual de clientes.
 - Marco 8: exportação e restauração de backup local com banco, logos e PDFs.
+- Marco 9: estabilização dos PDFs com fonte Unicode offline e preparação para release.
+
+## Privacidade e funcionamento offline
+
+- O aplicativo não possui backend, login, analytics ou permissão de internet.
+- Dados, logos e PDFs permanecem no armazenamento privado do aplicativo.
+- O backup automático do Android está desativado; exportações ocorrem somente quando solicitadas pelo usuário.
+
+## Release Android
+
+Antes da distribuição pública, crie uma chave de assinatura própria e configure-a fora do repositório. Nunca versione o arquivo da chave ou suas senhas. Depois execute:
+
+```sh
+flutter analyze
+flutter test
+flutter build apk --release
+```

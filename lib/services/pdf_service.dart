@@ -14,7 +14,12 @@ import 'package:pdf/widgets.dart' as pw;
 
 class PdfService {
   Future<Uint8List> buildReceipt(AppDocument receipt, Profile profile) async {
-    final pdf = pw.Document();
+    final fonts = await _loadFonts();
+    final pdf = pw.Document(
+      theme: fonts == null
+          ? null
+          : pw.ThemeData.withFont(base: fonts.$1, bold: fonts.$2),
+    );
     final accent = PdfColor.fromInt(profile.color);
     pw.MemoryImage? logo;
     final logoPath = profile.logoPath;
@@ -198,6 +203,45 @@ class PdfService {
     final file = File(p.join(directory.path, '$safeNumber.pdf'));
     await file.writeAsBytes(bytes, flush: true);
     return file.path;
+  }
+
+  Future<(pw.Font, pw.Font)?> _loadFonts() async {
+    final regularPaths = <String>[
+      if (Platform.isAndroid) ...[
+        '/system/fonts/Roboto-Regular.ttf',
+        '/system/fonts/RobotoStatic-Regular.ttf',
+        '/system/fonts/NotoSans-Regular.ttf',
+      ],
+      if (Platform.isWindows) ...[
+        r'C:\Windows\Fonts\arial.ttf',
+        r'C:\Windows\Fonts\segoeui.ttf',
+      ],
+    ];
+    final boldPaths = <String>[
+      if (Platform.isAndroid) ...[
+        '/system/fonts/Roboto-Bold.ttf',
+        '/system/fonts/RobotoStatic-Bold.ttf',
+        '/system/fonts/NotoSans-Bold.ttf',
+      ],
+      if (Platform.isWindows) ...[
+        r'C:\Windows\Fonts\arialbd.ttf',
+        r'C:\Windows\Fonts\segoeuib.ttf',
+      ],
+    ];
+    final regular = await _firstFont(regularPaths);
+    final bold = await _firstFont(boldPaths);
+    if (regular == null || bold == null) return null;
+    return (regular, bold);
+  }
+
+  Future<pw.Font?> _firstFont(List<String> paths) async {
+    for (final path in paths) {
+      final file = File(path);
+      if (!await file.exists()) continue;
+      final bytes = await file.readAsBytes();
+      return pw.Font.ttf(bytes.buffer.asByteData());
+    }
+    return null;
   }
 
   pw.Widget _sectionTitle(String text, PdfColor color) => pw.Padding(
