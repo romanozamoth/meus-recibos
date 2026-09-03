@@ -25,6 +25,7 @@ android/captures/
 # Arquivos gerados
 **/generated_plugin_registrant.dart
 **/GeneratedPluginRegistrant.java
+PROJECT_CONTEXT.md
 
 # Sistema operacional
 .DS_Store

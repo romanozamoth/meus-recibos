@@ -32,7 +32,25 @@ Estado atual:
 
 ## Release Android
 
-Antes da distribuição pública, crie uma chave de assinatura própria e configure-a fora do repositório. Nunca versione o arquivo da chave ou suas senhas. Depois execute:
+Antes da distribuição pública, crie uma chave de assinatura própria. No Windows,
+o `keytool` fornecido pelo Android Studio pode ser executado com:
+
+```powershell
+& "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -genkeypair -v -keystore "$env:USERPROFILE\meus-recibos-upload.jks" -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+
+Depois, copie `android/key.properties.example` para `android/key.properties` e
+preencha as senhas e o caminho da chave. Ambos os arquivos sensíveis já estão
+ignorados pelo Git. Sem essa configuração, o build release falha de propósito
+para impedir a distribuição acidental de um APK com assinatura de desenvolvimento.
+
+> Importante: os APKs de teste anteriores foram assinados com a chave de
+> desenvolvimento. Antes de migrar para a assinatura definitiva, exporte um
+> backup dentro do aplicativo. O Android exigirá desinstalar a versão antiga;
+> depois instale o APK definitivo e restaure o backup.
+
+Guarde cópias seguras da chave e das senhas. Sem elas não será possível publicar
+atualizações compatíveis no futuro. Nunca versione esses dados. Depois execute:
 
 ```sh
 flutter analyze

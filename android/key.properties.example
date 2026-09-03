@@ -1,0 +1,6 @@
+# Copie este arquivo para android/key.properties e preencha os valores reais.
+# Use barras normais no caminho do Windows e mantenha a chave fora do projeto.
+storePassword=SENHA_DO_ARQUIVO
+keyPassword=SENHA_DA_CHAVE
+keyAlias=upload
+storeFile=C:/Users/SEU_USUARIO/meus-recibos-upload.jks
