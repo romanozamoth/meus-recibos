@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:meus_recibos/models/app_document.dart';
@@ -37,7 +38,9 @@ class DocumentController extends ChangeNotifier {
     AppDocument receipt,
     Profile profile,
   ) async {
-    var saved = await _repository.saveNew(receipt);
+    var saved = receipt.id == null
+        ? await _repository.saveNew(receipt)
+        : await _repository.updateExisting(receipt);
     final bytes = await _pdfService.buildReceipt(saved, profile);
     final path = await _pdfService.saveReceipt(bytes, saved);
     saved = await _repository.updatePdfPath(saved.id!, path);
@@ -68,4 +71,24 @@ class DocumentController extends ChangeNotifier {
   }
 
   Future<AppDocument?> findById(int id) => _repository.findById(id);
+
+  Future<void> deleteDocument(AppDocument document) async {
+    final id = document.id;
+    if (id == null) return;
+    await _repository.delete(id);
+    final pdfPath = document.pdfPath;
+    if (pdfPath != null) {
+      try {
+        final file = File(pdfPath);
+        if (await file.exists()) await file.delete();
+      } on FileSystemException {
+        // O registro já foi removido; um PDF órfão não deve impedir a exclusão.
+      }
+    }
+    _recentReceipts = _recentReceipts
+        .where((item) => item.id != id)
+        .toList();
+    notifyListeners();
+    unawaited(loadRecentReceipts());
+  }
 }

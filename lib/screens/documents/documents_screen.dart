@@ -43,9 +43,16 @@ class DocumentsScreen extends StatelessWidget {
                         '${document.type.label}${document.type == DocumentType.budget ? ' • ${_statusLabel(document.status)}' : ''}',
                       ),
                       isThreeLine: true,
-                      trailing: Text(
-                        CurrencyUtils.format(document.total),
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      trailing: SizedBox(
+                        width: 86,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            CurrencyUtils.format(document.total),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
                       ),
                       onTap: () => Navigator.push(
                         context,

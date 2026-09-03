@@ -20,11 +20,13 @@ class ReceiptFormScreen extends StatefulWidget {
   const ReceiptFormScreen({
     this.type = DocumentType.receipt,
     this.initialDocument,
+    this.editing = false,
     super.key,
   });
 
   final DocumentType type;
   final AppDocument? initialDocument;
+  final bool editing;
 
   @override
   State<ReceiptFormScreen> createState() => _ReceiptFormScreenState();
@@ -72,6 +74,10 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
         .replaceFirst('R\$ ', '');
     _notes.text = initial.notes ?? '';
     _paymentMethod = initial.paymentMethod;
+    if (widget.editing) {
+      _date = initial.date;
+      _dueDate = _isBudget ? initial.validUntil : initial.dueDate;
+    }
     _items.addAll(initial.items.map(_ItemDraft.fromItem));
     if (_items.isEmpty) _items.add(_ItemDraft());
   }
@@ -148,7 +154,12 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
 
   AppDocument _receiptDraft({int? clientId}) {
     final now = DateTime.now();
+    final initial = widget.initialDocument;
     return AppDocument(
+      id: widget.editing ? initial?.id : null,
+      number: widget.editing ? initial?.number : null,
+      sequence: widget.editing ? initial?.sequence : null,
+      year: widget.editing ? initial?.year : null,
       type: widget.type,
       profileId: _profileId!,
       clientId: clientId ?? _selectedClient?.id ?? _initialClientId,
@@ -164,11 +175,14 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
       subtotal: _subtotal,
       discount: _discountCents,
       total: _total,
-      status: _isBudget ? 'pending' : 'paid',
-      sourceDocumentId: widget.type == DocumentType.proof
-          ? widget.initialDocument?.id
+      status: widget.editing ? initial!.status : (_isBudget ? 'pending' : 'paid'),
+      sourceDocumentId: widget.editing
+          ? initial?.sourceDocumentId
+          : widget.type == DocumentType.proof
+          ? initial?.id
           : null,
-      createdAt: now,
+      pdfPath: widget.editing ? initial?.pdfPath : null,
+      createdAt: widget.editing ? initial!.createdAt : now,
       updatedAt: now,
       items: _items.map((item) => item.toDocumentItem()).toList(),
     );
@@ -231,33 +245,7 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
             );
         clientId = savedClient.id;
       }
-      final now = DateTime.now();
-      final receipt = AppDocument(
-        type: widget.type,
-        profileId: _profileId!,
-        clientId: clientId,
-        clientName: _clientName.text.trim(),
-        clientDocument: _optional(
-          DocumentUtils.digitsOnly(_clientDocument.text),
-        ),
-        clientAddress: _optional(_clientAddress.text),
-        date: _date,
-        dueDate: _isBudget ? null : _dueDate,
-        validUntil: _isBudget ? _dueDate : null,
-        serviceDescription: _serviceDescription.text.trim(),
-        paymentMethod: _paymentMethod,
-        notes: _optional(_notes.text),
-        subtotal: _subtotal,
-        discount: _discountCents,
-        total: _total,
-        status: _isBudget ? 'pending' : 'paid',
-        sourceDocumentId: widget.type == DocumentType.proof
-            ? widget.initialDocument?.id
-            : null,
-        createdAt: now,
-        updatedAt: now,
-        items: _items.map((item) => item.toDocumentItem()).toList(),
-      );
+      final receipt = _receiptDraft(clientId: clientId);
       if (!mounted) return;
       final profile = context.read<ProfileController>().profiles.firstWhere(
         (profile) => profile.id == _profileId,
@@ -266,10 +254,22 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
           .read<DocumentController>()
           .saveDocumentWithPdf(receipt, profile);
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => ReceiptDetailScreen(receipt: saved)),
-      );
+      if (widget.editing) {
+        final navigator = Navigator.of(context);
+        navigator.popUntil((route) => route.isFirst);
+        await navigator.push(
+          MaterialPageRoute(
+            builder: (_) => ReceiptDetailScreen(receipt: saved),
+          ),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ReceiptDetailScreen(receipt: saved),
+          ),
+        );
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -288,7 +288,11 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
   Widget build(BuildContext context) {
     final profiles = context.watch<ProfileController>().profiles;
     return Scaffold(
-      appBar: AppBar(title: Text('Novo ${widget.type.label}')),
+      appBar: AppBar(
+        title: Text(
+          '${widget.editing ? 'Editar' : 'Novo'} ${widget.type.label}',
+        ),
+      ),
       body: SafeArea(
         top: false,
         child: Form(
@@ -319,32 +323,19 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
                 onChanged: (value) => setState(() => _profileId = value),
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _DateField(
-                      label: 'Data',
-                      value: _date,
-                      onTap: () async {
-                        final value = await _pickDate(_date);
-                        if (value != null) setState(() => _date = value);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _DateField(
-                      label: _isBudget ? 'Validade' : 'Vencimento',
-                      value: _dueDate,
-                      optional: true,
-                      onClear: () => setState(() => _dueDate = null),
-                      onTap: () async {
-                        final value = await _pickDate(_dueDate ?? _date);
-                        if (value != null) setState(() => _dueDate = value);
-                      },
-                    ),
-                  ),
-                ],
+              _DateFields(
+                date: _date,
+                dueDate: _dueDate,
+                dueLabel: _isBudget ? 'Validade' : 'Vencimento',
+                onDateTap: () async {
+                  final value = await _pickDate(_date);
+                  if (value != null) setState(() => _date = value);
+                },
+                onDueTap: () async {
+                  final value = await _pickDate(_dueDate ?? _date);
+                  if (value != null) setState(() => _dueDate = value);
+                },
+                onDueClear: () => setState(() => _dueDate = null),
               ),
               const _SectionTitle('Dados do cliente'),
               OutlinedButton.icon(
@@ -414,18 +405,19 @@ class _ReceiptFormScreenState extends State<ReceiptFormScreen> {
                 maxLines: 4,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
-                  labelText: 'Descrição do serviço',
+                  labelText: 'Descrição do serviço (opcional)',
                   alignLabelWithHint: true,
                   prefixIcon: Padding(
                     padding: EdgeInsets.only(bottom: 38),
                     child: Icon(Icons.description_outlined),
                   ),
                 ),
-                validator: _required,
               ),
               const SizedBox(height: 26),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
                 children: [
                   const Text(
                     'Itens',
@@ -667,26 +659,21 @@ class _ItemCard extends StatelessWidget {
                   },
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 3,
-                child: TextFormField(
-                  controller: draft.unitPrice,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  onChanged: (_) => onChanged(),
-                  decoration: const InputDecoration(
-                    labelText: 'Valor unit.',
-                    prefixText: 'R\$ ',
-                  ),
-                  validator: (value) =>
-                      (CurrencyUtils.tryParseCents(value ?? '') ?? 0) <= 0
-                      ? 'Informe o valor'
-                      : null,
-                ),
-              ),
             ],
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: draft.unitPrice,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (_) => onChanged(),
+            decoration: const InputDecoration(
+              labelText: 'Valor unitário',
+              prefixText: 'R\$ ',
+            ),
+            validator: (value) =>
+                (CurrencyUtils.tryParseCents(value ?? '') ?? 0) <= 0
+                ? 'Informe o valor'
+                : null,
           ),
           const SizedBox(height: 10),
           Align(
@@ -728,6 +715,56 @@ class _DateField extends StatelessWidget {
       ),
       child: Text(value == null ? 'Selecionar' : AppDateUtils.format(value!)),
     ),
+  );
+}
+
+class _DateFields extends StatelessWidget {
+  const _DateFields({
+    required this.date,
+    required this.dueDate,
+    required this.dueLabel,
+    required this.onDateTap,
+    required this.onDueTap,
+    required this.onDueClear,
+  });
+
+  final DateTime date;
+  final DateTime? dueDate;
+  final String dueLabel;
+  final VoidCallback onDateTap;
+  final VoidCallback onDueTap;
+  final VoidCallback onDueClear;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final textScale = MediaQuery.textScalerOf(context).scale(1);
+      final vertical = constraints.maxWidth < 360 || textScale > 1.15;
+      final dateField = _DateField(
+        label: 'Data',
+        value: date,
+        onTap: onDateTap,
+      );
+      final dueField = _DateField(
+        label: dueLabel,
+        value: dueDate,
+        optional: true,
+        onClear: onDueClear,
+        onTap: onDueTap,
+      );
+      if (vertical) {
+        return Column(
+          children: [dateField, const SizedBox(height: 12), dueField],
+        );
+      }
+      return Row(
+        children: [
+          Expanded(child: dateField),
+          const SizedBox(width: 12),
+          Expanded(child: dueField),
+        ],
+      );
+    },
   );
 }
 

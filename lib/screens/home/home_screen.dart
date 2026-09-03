@@ -97,7 +97,11 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 14),
             LayoutBuilder(
               builder: (context, constraints) {
-                final width = (constraints.maxWidth - 12) / 2;
+                final textScale = MediaQuery.textScalerOf(context).scale(1);
+                final columns = constraints.maxWidth >= 340 && textScale <= 1.2;
+                final width = columns
+                    ? (constraints.maxWidth - 12) / 2
+                    : constraints.maxWidth;
                 return Wrap(
                   spacing: 12,
                   runSpacing: 12,
@@ -252,6 +256,8 @@ class _RecentReceiptCard extends StatelessWidget {
                 children: [
                   Text(
                     receipt.clientName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 3),

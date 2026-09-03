@@ -38,10 +38,13 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
       await widget.onSave();
     } catch (_) {
       if (!mounted) return;
-      setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Não foi possível salvar e gerar o PDF.')),
       );
+    } finally {
+      // O formulário também trata falhas. Se ele não trocar de tela, o botão
+      // precisa voltar ao estado normal para permitir uma nova tentativa.
+      if (mounted) setState(() => _saving = false);
     }
   }
 

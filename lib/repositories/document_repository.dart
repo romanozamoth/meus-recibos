@@ -58,6 +58,84 @@ class DocumentRepository {
     });
   }
 
+  Future<AppDocument> updateExisting(AppDocument document) async {
+    final id = document.id;
+    if (id == null) {
+      throw ArgumentError('O documento precisa estar salvo antes de ser editado.');
+    }
+    if (document.items.isEmpty) {
+      throw ArgumentError('O documento deve possuir pelo menos um item.');
+    }
+    final database = await _appDatabase.database;
+    return database.transaction((transaction) async {
+      final existing = await _findById(transaction, id);
+      if (existing == null) {
+        throw StateError('Documento não encontrado.');
+      }
+      final items = document.items
+          .map(
+            (item) => DocumentItem(
+              description: item.description.trim(),
+              quantityMillis: item.quantityMillis,
+              unit: item.unit.trim(),
+              unitPrice: item.unitPrice,
+              total: QuantityUtils.calculateTotal(
+                item.quantityMillis,
+                item.unitPrice,
+              ),
+            ),
+          )
+          .toList();
+      final subtotal = items.fold<int>(0, (sum, item) => sum + item.total);
+      if (document.discount < 0 || document.discount > subtotal) {
+        throw ArgumentError('O desconto deve estar entre zero e o subtotal.');
+      }
+      final values = document.toMap()
+        ..remove('id')
+        ..remove('number')
+        ..remove('sequence')
+        ..remove('year')
+        ..remove('type')
+        ..remove('created_at')
+        ..['subtotal'] = subtotal
+        ..['total'] = subtotal - document.discount
+        ..['updated_at'] = DateTime.now().toIso8601String();
+      await transaction.update(
+        'documents',
+        values,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      await transaction.delete(
+        'document_items',
+        where: 'document_id = ?',
+        whereArgs: [id],
+      );
+      for (final item in items) {
+        final itemValues = item.toMap()
+          ..remove('id')
+          ..['document_id'] = id;
+        await transaction.insert('document_items', itemValues);
+      }
+      return (await _findById(transaction, id))!;
+    });
+  }
+
+  Future<void> delete(int id) async {
+    final database = await _appDatabase.database;
+    await database.transaction((transaction) async {
+      // Um comprovante continua válido mesmo se seu orçamento de origem for
+      // removido; apenas o vínculo entre os dois deixa de existir.
+      await transaction.update(
+        'documents',
+        {'source_document_id': null},
+        where: 'source_document_id = ?',
+        whereArgs: [id],
+      );
+      await transaction.delete('documents', where: 'id = ?', whereArgs: [id]);
+    });
+  }
+
   Future<List<AppDocument>> findRecent({
     DocumentType? type,
     int limit = 10,

@@ -56,6 +56,58 @@ class ReceiptDetailScreen extends StatelessWidget {
     );
   }
 
+  void _edit(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReceiptFormScreen(
+          type: receipt.type,
+          initialDocument: receipt,
+          editing: true,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _delete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Excluir ${receipt.type.label.toLowerCase()}?'),
+        content: Text(
+          'O documento ${receipt.number ?? ''} e seu PDF serão excluídos permanentemente.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+      await context.read<DocumentController>().deleteDocument(receipt);
+      if (!context.mounted) return;
+      navigator.popUntil((route) => route.isFirst);
+      messenger.showSnackBar(
+        SnackBar(content: Text('${receipt.type.label} excluído com sucesso.')),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível excluir o documento.')),
+      );
+    }
+  }
+
   void _missingPdf(BuildContext context) => ScaffoldMessenger.of(
     context,
   ).showSnackBar(const SnackBar(content: Text('Arquivo PDF não encontrado.')));
@@ -119,7 +171,36 @@ class ReceiptDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(receipt.number ?? receipt.type.label)),
+    appBar: AppBar(
+      title: Text(receipt.number ?? receipt.type.label),
+      actions: [
+        PopupMenuButton<String>(
+          tooltip: 'Opções do documento',
+          onSelected: (value) {
+            if (value == 'edit') _edit(context);
+            if (value == 'delete') _delete(context);
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(
+              value: 'edit',
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.edit_outlined),
+                title: Text('Editar'),
+              ),
+            ),
+            PopupMenuItem(
+              value: 'delete',
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.delete_outline, color: Colors.red),
+                title: Text('Excluir', style: TextStyle(color: Colors.red)),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
     body: SafeArea(
       top: false,
       child: ListView(
@@ -202,8 +283,10 @@ class ReceiptDetailScreen extends StatelessWidget {
             ),
           if (receipt.clientAddress != null)
             _Info(label: 'Endereço', value: receipt.clientAddress!),
-          const _Title('Serviço'),
-          Text(receipt.serviceDescription),
+          if (receipt.serviceDescription.isNotEmpty) ...[
+            const _Title('Serviço'),
+            Text(receipt.serviceDescription),
+          ],
           const _Title('Itens'),
           ...receipt.items.map(
             (item) => Card(
@@ -272,24 +355,16 @@ class ReceiptDetailScreen extends StatelessWidget {
             label: const Text('Abrir PDF'),
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _share(context),
-                  icon: const Icon(Icons.share_outlined),
-                  label: const Text('Compartilhar'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _print(context),
-                  icon: const Icon(Icons.print_outlined),
-                  label: const Text('Imprimir'),
-                ),
-              ),
-            ],
+          OutlinedButton.icon(
+            onPressed: () => _share(context),
+            icon: const Icon(Icons.share_outlined),
+            label: const Text('Compartilhar'),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () => _print(context),
+            icon: const Icon(Icons.print_outlined),
+            label: const Text('Imprimir'),
           ),
         ],
       ),

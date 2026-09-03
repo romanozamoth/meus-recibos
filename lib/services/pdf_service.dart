@@ -104,9 +104,11 @@ class PdfService {
             _info('CPF/CNPJ', DocumentUtils.format(receipt.clientDocument!)),
           if (receipt.clientAddress != null)
             _info('Endereço', receipt.clientAddress!),
-          _sectionTitle('SERVIÇO', accent),
-          pw.Text(receipt.serviceDescription),
-          pw.SizedBox(height: 16),
+          if (receipt.serviceDescription.isNotEmpty) ...[
+            _sectionTitle('SERVIÇO', accent),
+            pw.Text(receipt.serviceDescription),
+            pw.SizedBox(height: 16),
+          ],
           pw.TableHelper.fromTextArray(
             headerDecoration: pw.BoxDecoration(color: accent),
             headerStyle: pw.TextStyle(
