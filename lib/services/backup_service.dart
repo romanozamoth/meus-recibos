@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:archive/archive.dart';
+import 'package:flutter/foundation.dart';
 import 'package:meus_recibos/core/database/app_database.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -68,10 +67,15 @@ class BackupService {
 
   Future<void> restore(Uint8List bytes) async {
     final archive = ZipDecoder().decodeBytes(bytes, verify: true);
-    final manifestEntry = archive.findFile('manifest.json');
-    final databaseEntry = archive.findFile('database/meus_recibos.db');
+    final manifestEntry = findEntryForRestore(archive, 'manifest.json');
+    final databaseEntry = findEntryForRestore(
+      archive,
+      'database/meus_recibos.db',
+    );
     if (manifestEntry == null || databaseEntry == null) {
-      throw const FormatException('Arquivo de backup incompleto.');
+      throw const FormatException(
+        'Arquivo de backup incompleto. Selecione o arquivo .mrbak exportado pelo aplicativo.',
+      );
     }
     final manifest = jsonDecode(
       utf8.decode(manifestEntry.content as List<int>),
@@ -124,6 +128,31 @@ class BackupService {
     }
   }
 
+  @visibleForTesting
+  static ArchiveFile? findEntryForRestore(
+    Archive archive,
+    String expectedPath,
+  ) {
+    final expected = _normalizeArchivePath(expectedPath);
+    for (final entry in archive.files) {
+      if (!entry.isFile) continue;
+      final current = _normalizeArchivePath(entry.name);
+      if (current == expected || current.endsWith('/$expected')) return entry;
+    }
+    return null;
+  }
+
+  static String _normalizeArchivePath(String value) {
+    var normalized = value.replaceAll('\\', '/').trim().toLowerCase();
+    while (normalized.startsWith('./')) {
+      normalized = normalized.substring(2);
+    }
+    while (normalized.startsWith('/')) {
+      normalized = normalized.substring(1);
+    }
+    return normalized;
+  }
+
   Future<void> _addDirectory(
     Archive archive,
     Directory directory,
@@ -143,16 +172,15 @@ class BackupService {
     final documents = await getApplicationDocumentsDirectory();
     for (final entry in archive.files) {
       if (!entry.isFile) continue;
-      final parts = p.posix.split(entry.name);
-      if (parts.length != 2 ||
-          !const {'profile_logos', 'pdfs'}.contains(parts.first)) {
-        continue;
-      }
-      final fileName = p.basename(parts.last);
+      final parts = p.posix.split(_normalizeArchivePath(entry.name));
+      if (parts.length < 2) continue;
+      final assetDirectory = parts[parts.length - 2];
+      if (!const {'profile_logos', 'pdfs'}.contains(assetDirectory)) continue;
+      final fileName = p.posix.basename(parts.last);
       if (fileName != parts.last) {
         throw const FormatException('Caminho inválido no backup.');
       }
-      final directory = Directory(p.join(documents.path, parts.first));
+      final directory = Directory(p.join(documents.path, assetDirectory));
       await directory.create(recursive: true);
       await File(p.join(directory.path, fileName))
           .writeAsBytes(entry.content as List<int>, flush: true);

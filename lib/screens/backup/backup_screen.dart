@@ -42,18 +42,23 @@ class _BackupScreenState extends State<BackupScreen> {
   }
 
   Future<void> _chooseRestore() async {
-    final files = await FilePicker.pickFiles(
+    final file = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: const ['mrbak'],
     );
-    if (files.isEmpty || !mounted) return;
-    final bytes = await files.single.readAsBytes();
+    if (file == null || !mounted) return;
+    final byteBuilder = BytesBuilder(copy: false);
+    await for (final chunk in file.readAsByteStream()) {
+      byteBuilder.add(chunk);
+    }
+    final bytes = byteBuilder.takeBytes();
     if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Restaurar backup?'),
-        content: const Text(
+        content: Text(
+          '${file.name} (${_formatSize(bytes.length)})\n\n'
           'Os perfis, clientes e documentos atuais serão substituídos pelos dados deste backup. Esta ação não pode ser desfeita.',
         ),
         actions: [
@@ -69,6 +74,14 @@ class _BackupScreenState extends State<BackupScreen> {
       ),
     );
     if (confirmed == true) await _restore(bytes);
+  }
+
+  String _formatSize(int bytes) {
+    if (bytes < 1024) return '$bytes bytes';
+    if (bytes < 1024 * 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    }
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
   Future<void> _restore(Uint8List bytes) async {
